@@ -1,5 +1,6 @@
 import pygame
 import game_logic
+import os
 
 class gameRenderer:
     def __init__(self, width, height, tile_size):
@@ -16,14 +17,18 @@ class gameRenderer:
             'player': 'player.png', 'wall': 'wall.png', 'lava': 'lava.png',
             'water': 'water.png', 'goal': 'goal.png', 'ice': 'ice.png',
             'block': 'block.png', 'empty': 'empty.png', 'mesh': 'mesh.png',
-            'digital': 'digital.png'
+            'digital': 'digital.png', 'coin': 'coin.png'
         }
         for key, filename in asset_names.items():
+            path = f'assets/{filename}'
             try:
-                image = pygame.image.load(f'assets/{filename}').convert_alpha()
-                self.assets[key] = pygame.transform.scale(image, (tile_size, tile_size))
-            except pygame.error:
-                print(f"Warning: Could not load image {filename}. Using a colored square.")
+                if os.path.exists(path):
+                    image = pygame.image.load(path).convert_alpha()
+                    self.assets[key] = pygame.transform.scale(image, (tile_size, tile_size))
+                else:
+                    raise FileNotFoundError 
+            except (pygame.error, FileNotFoundError):
+                print(f"Drawing asset programmatically for: {key}") 
                 self.assets[key] = self._create_placeholder_surface(key)
 
         self.font = pygame.font.Font(None, 24)
@@ -34,12 +39,23 @@ class gameRenderer:
         colors = {
             'player': (255, 255, 0), 'wall': (128, 128, 128), 'lava': (255, 0, 0),
             'water': (0, 0, 255), 'goal': (0, 255, 0), 'ice': (173, 216, 230),
-            'block': (64, 64, 64), 'empty': (50, 50, 50) , 'mesh': (255, 165, 0)
+            'block': (64, 64, 64), 'empty': (50, 50, 50) , 'mesh': (255, 165, 0),
+            'digital': (255, 255, 255), 'coin': (255, 223, 0)
         }
         surface.fill(colors.get(key, (255, 0, 255)))
+        color = colors.get(key, (255, 0, 255))
+        if key == 'coin': 
+            center = (self.tile_size // 2, self.tile_size // 2)
+            radius = self.tile_size // 3
+            pygame.draw.circle(surface, color, center, radius)
+            pygame.draw.circle(surface, (200, 150, 0), center, radius, 2)
+            pygame.draw.circle(surface, (255, 255, 200), (center[0] - 5, center[1] - 5), 3)
 
-        if key == 'mesh':
+        elif key == 'mesh':
+            surface.fill(color)
             surface.set_alpha(128)
+        else:
+            surface.fill(color)
 
         return surface
 
@@ -58,6 +74,7 @@ class gameRenderer:
             for c_idx, cell in enumerate(row):
                 x, y = c_idx * self.tile_size, r_idx * self.tile_size
                 if cell == game_logic.WALL: self.screen.blit(self.assets['wall'], (x, y))
+                elif cell == game_logic.COIN: self.screen.blit(self.assets['coin'], (x, y))
                 elif cell == game_logic.LAVA: self.screen.blit(self.assets['lava'], (x, y))
                 elif cell == game_logic.WATER: self.screen.blit(self.assets['water'], (x, y))
                 elif cell == game_logic.GOAL: self.screen.blit(self.assets['goal'], (x, y))
@@ -79,7 +96,20 @@ class gameRenderer:
                     self.screen.blit(self.assets['empty'], (x, y))
 
         pr, pc = state.player_pos
+        cell_under = state.board[pr][pc]    
+        overlay_radius = self.tile_size // 4
+        overlay_center = (pc * self.tile_size + self.tile_size//2, pr * self.tile_size + self.tile_size//2)
+        if cell_under == game_logic.WATER:
+            s = pygame.Surface((self.tile_size, self.tile_size), pygame.SRCALPHA)
+            pygame.draw.circle(s, (0, 0, 255, 120), (self.tile_size//2, self.tile_size//2), overlay_radius)
+            self.screen.blit(s, (pc * self.tile_size, pr * self.tile_size))
+        elif cell_under == game_logic.LAVA:
+            s = pygame.Surface((self.tile_size, self.tile_size), pygame.SRCALPHA)
+            pygame.draw.circle(s, (255, 50, 0, 160), (self.tile_size//2, self.tile_size//2), overlay_radius)
+            self.screen.blit(s, (pc * self.tile_size, pr * self.tile_size))
+
         self.screen.blit(self.assets['player'], (pc * self.tile_size, pr * self.tile_size))
+
 
         info_y = self.height - 50
         move_text = self.font.render(f"Moves: {move_count}", True, (255, 255, 255))

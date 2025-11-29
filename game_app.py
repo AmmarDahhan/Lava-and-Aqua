@@ -69,13 +69,13 @@ class PygameApp:
                 action = None
                 # --- 1. مفاتيح تشغيل الخوارزميات ---
                 if event.key == pygame.K_b:
-                    print("Running BFS Solver (Finding Shortest Path)...")                                        
+                    print("Running BFS Solver : ")                                        
                     solver = BFSSolver()
                     results = solver.solve(self.current_state) #  استقبال القاموس
                     self.process_solver_results(results) #  معالجة وطباعة النتائج
 
                 elif event.key == pygame.K_d:
-                    print("Running DFS Solver...")
+                    print("Running DFS Solver : ")
                     solver = DFSSolver()
                     results = solver.solve(self.current_state) #  استقبال القاموس
                     self.process_solver_results(results) #  معالجة وطباعة النتائج
@@ -196,5 +196,5 @@ class PygameApp:
         sys.exit()
  
 if __name__ == "__main__":
-    app = PygameApp('level14.txt')
+    app = PygameApp('level7.txt')
     app.run()

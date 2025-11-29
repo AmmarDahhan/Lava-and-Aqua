@@ -12,25 +12,33 @@ ICE = 'I'
 EMPTY = ' '
 BLOCK = 'B'
 MESH = 'M'
+COIN = 'C'
 MESH_LAVA = 'ML'
 MESH_WATER = 'MW'
 
+def pretty_print_board(board):
+    for row in board:
+        print(''.join(cell if len(cell)==1 else '?' for cell in row))
+    print()
+
+
 def parse_level_file(level_file: str) -> GameState:
-    #Reads a level file and returns the initial GameState
     board = []
     player_pos = None
     with open(level_file, 'r') as f:
         for r_idx, line in enumerate(f):
-            row = tuple(line.strip().split(','))
-            board.append(row)
-            if PLAYER in row and player_pos is None:
-                c_idx = row.index(PLAYER)
+            row_list = line.strip().split(',')
+            if PLAYER in row_list and player_pos is None:
+                c_idx = row_list.index(PLAYER)
                 player_pos = (r_idx, c_idx)
-    
+                row_list[c_idx] = EMPTY
+            board.append(tuple(row_list))
+
     if player_pos is None:
         raise ValueError("Player position '@' not found in level file.")
-        
+
     return GameState(board=tuple(board), player_pos=player_pos)
+
 
 def get_available_transitions(state: GameState) -> List[str]:
     #Returns a list of valid moves from the current state.
@@ -56,7 +64,7 @@ def get_available_transitions(state: GameState) -> List[str]:
             if not (0 <= ice_new_r < len(state.board) and 0 <= ice_new_c < len(state.board[0])):
                 continue
             ice_target = state.board[ice_new_r][ice_new_c]
-            if ice_target not in [EMPTY, LAVA]:
+            if ice_target not in [EMPTY, LAVA, COIN]:
                 continue
                 
         moves.append(move)
@@ -81,11 +89,27 @@ def apply_transition(state: GameState, action: str) -> GameState:
 
     # Handle ice pushing
     if target_cell == ICE:
+        rows, cols = len(new_board_list), len(new_board_list[0])
         ice_new_r, ice_new_c = new_r + dr, new_c + dc
-        new_board_list[ice_new_r][ice_new_c] = ICE
+        if not (0 <= ice_new_r < rows and 0 <= ice_new_c < cols):
+            return state
 
-    # Clear the player's old position
-    new_board_list[r][c] = EMPTY
+        dest = new_board_list[ice_new_r][ice_new_c]
+        if dest in (EMPTY, WATER):
+            new_board_list[ice_new_r][ice_new_c] = ICE            
+            new_board_list[new_r][new_c] = EMPTY
+        else:
+            return state
+
+
+    if target_cell == COIN:
+        new_board_list[new_r][new_c] = EMPTY
+
+    # new_board_list[r][c] = EMPTY
+    old_under = new_board_list[r][c]
+    if old_under == PLAYER:
+        new_board_list[r][c] = EMPTY
+
     
     new_player_pos = (new_r, new_c)
 
@@ -117,11 +141,13 @@ def apply_transition(state: GameState, action: str) -> GameState:
                         continue
 
                     target = new_board_list[nr][nc]
+
+                    is_treat_as_empty = (target == EMPTY or target == PLAYER)
                                         
                     if (nr, nc) == new_player_pos and spread_char == LAVA:
                         player_dies_this_turn = True
 
-                    if target == EMPTY:
+                    if is_treat_as_empty:
                         if spread_char == LAVA: new_lava.add((nr, nc))
                         else: new_water.add((nr, nc))
                     elif target == MESH:
@@ -141,15 +167,33 @@ def apply_transition(state: GameState, action: str) -> GameState:
         new_board_list[pr][pc] = LAVA
 
     final_board_tuple = tuple(tuple(row) for row in new_board_list)
+
+    pr, pc = new_player_pos
+    cell_under_player = final_board_tuple[pr][pc]
+    # print(f"Action: {action} -> player at {new_player_pos}, cell_under = '{cell_under_player}'")
+    # pretty_print_board(final_board_tuple)
+
     return GameState(board=final_board_tuple, player_pos=new_player_pos)
+
+def count_coins(state: GameState) -> int:
+    count = 0
+    for row in state.board:
+        count += row.count(COIN)
+    return count
 
 def is_terminal(state: GameState) -> bool:
     #Checks if the game is in a terminal state (win or lose)
     r, c = state.player_pos 
     cell_at_player_pos = state.board[r][c]
-    return cell_at_player_pos in [GOAL, LAVA]
+    if cell_at_player_pos == LAVA:
+        return True
+    
+    if cell_at_player_pos == GOAL:
+        return count_coins(state) == 0
+    
+    return False
 
 def is_goal(state: GameState) -> bool:
     #Checks if the game is in a winning state
     r, c = state.player_pos
-    return state.board[r][c] == GOAL
+    return state.board[r][c] == GOAL and count_coins(state) == 0
