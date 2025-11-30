@@ -15,6 +15,65 @@ MESH = 'M'
 COIN = 'C'
 MESH_LAVA = 'ML'
 MESH_WATER = 'MW'
+ICE_PUSH_ALLOWED = (EMPTY, WATER, LAVA, COIN)
+
+def state_id(state: 'GameState') -> tuple:    
+    board_str = '|'.join(','.join(row) for row in state.board)
+    return (state.player_pos, board_str)
+
+
+def _in_bounds(board, r, c):
+    return 0 <= r < len(board) and 0 <= c < len(board[0])
+
+
+def _first_non_ice_destination(board, start_r, start_c, dr, dc):
+    r, c = start_r, start_c
+    rows, cols = len(board), len(board[0])
+    if not _in_bounds(board, r, c) or board[r][c] != ICE:
+        return (r, c)
+    while True:
+        nr, nc = r + dr, c + dc
+        if not (0 <= nr < rows and 0 <= nc < cols):
+            return (r, c)
+        if board[nr][nc] != ICE:
+            return (nr, nc) if board[nr][nc] == ICE else (nr, nc)
+        r, c = nr, nc
+
+
+def would_cause_immediate_death(state: 'GameState', action: str) -> bool:
+    r, c = state.player_pos
+    dirs = {'w':(-1,0), 's':(1,0), 'a':(0,-1), 'd':(0,1)}
+    if action not in dirs:
+        return True
+    dr, dc = dirs[action]
+    nr, nc = r + dr, c + dc
+    if not _in_bounds(state.board, nr, nc):
+        return True 
+
+    target = state.board[nr][nc]
+    
+    if target == LAVA:
+        return True
+
+    final_r, final_c = nr, nc
+    if target == ICE:
+        final_r, final_c = _first_non_ice_destination(state.board, nr, nc, dr, dc)
+
+    rows, cols = len(state.board), len(state.board[0])
+    if not _in_bounds(state.board, final_r, final_c):
+        return True
+
+    dest_cell = state.board[final_r][final_c]
+    if dest_cell not in (EMPTY, COIN, WATER, ICE):
+        return False
+
+    for dr_spread, dc_spread in [(0,1),(0,-1),(1,0),(-1,0)]:
+        ar, ac = final_r + dr_spread, final_c + dc_spread
+        if _in_bounds(state.board, ar, ac) and state.board[ar][ac] == LAVA:
+            return True
+
+    return False
+
 
 def pretty_print_board(board):
     for row in board:
@@ -41,7 +100,6 @@ def parse_level_file(level_file: str) -> GameState:
 
 
 def get_available_transitions(state: GameState) -> List[str]:
-    #Returns a list of valid moves from the current state.
     moves = []
     r, c = state.player_pos
     directions = {
@@ -64,7 +122,7 @@ def get_available_transitions(state: GameState) -> List[str]:
             if not (0 <= ice_new_r < len(state.board) and 0 <= ice_new_c < len(state.board[0])):
                 continue
             ice_target = state.board[ice_new_r][ice_new_c]
-            if ice_target not in [EMPTY, LAVA, COIN]:
+            if ice_target not in ICE_PUSH_ALLOWED:
                 continue
                 
         moves.append(move)
@@ -72,7 +130,6 @@ def get_available_transitions(state: GameState) -> List[str]:
     return moves
 
 def apply_transition(state: GameState, action: str) -> GameState:
-    #Applies a full game turn and returns a new state
     if action not in get_available_transitions(state):
         return state
 
@@ -95,7 +152,7 @@ def apply_transition(state: GameState, action: str) -> GameState:
             return state
 
         dest = new_board_list[ice_new_r][ice_new_c]
-        if dest in (EMPTY, WATER):
+        if dest in ICE_PUSH_ALLOWED:
             new_board_list[ice_new_r][ice_new_c] = ICE            
             new_board_list[new_r][new_c] = EMPTY
         else:
@@ -104,8 +161,7 @@ def apply_transition(state: GameState, action: str) -> GameState:
 
     if target_cell == COIN:
         new_board_list[new_r][new_c] = EMPTY
-
-    # new_board_list[r][c] = EMPTY
+ 
     old_under = new_board_list[r][c]
     if old_under == PLAYER:
         new_board_list[r][c] = EMPTY
@@ -182,7 +238,6 @@ def count_coins(state: GameState) -> int:
     return count
 
 def is_terminal(state: GameState) -> bool:
-    #Checks if the game is in a terminal state (win or lose)
     r, c = state.player_pos 
     cell_at_player_pos = state.board[r][c]
     if cell_at_player_pos == LAVA:
@@ -194,6 +249,5 @@ def is_terminal(state: GameState) -> bool:
     return False
 
 def is_goal(state: GameState) -> bool:
-    #Checks if the game is in a winning state
     r, c = state.player_pos
     return state.board[r][c] == GOAL and count_coins(state) == 0

@@ -6,8 +6,6 @@ from game_renderer import gameRenderer
 from game_solver import BFSSolver, DFSSolver
 
 class PygameApp:
-
-    #Main application class for the graphical version of the game.
     def __init__(self, level_file, tile_size=40):
         self.level_file = level_file
         self.tile_size = tile_size
@@ -36,20 +34,17 @@ class PygameApp:
         self.running = True
         self.game_over = False
 
-        self.last_move_time = 0 # لتتبع وقت آخر حركة آلية
+        self.last_move_time = 0
         self.path_coords = set()
 
     def calculate_path_coordinates(self):
-        # يحسب الإحداثيات (r, c) للخلايا التي سيمر بها اللاعب في المسار المكتشف
         self.path_coords.clear()
-        
-        # 1. نحاكي الحركة باستخدام حالة البداية
+                
         simulated_state = self.current_state 
         self.path_coords.add(simulated_state.player_pos)
         
         if self.solver_path:
-            for action in self.solver_path:
-                # 2. نطبق الحركة دون تعديل حالة اللعبة الفعلية، فقط للمحاكاة
+            for action in self.solver_path:                
                 simulated_state = game_logic.apply_transition(simulated_state, action)
                 self.path_coords.add(simulated_state.player_pos)
 
@@ -66,26 +61,23 @@ class PygameApp:
                 return
 
             if event.type == pygame.KEYDOWN:
-                action = None
-                # --- 1. مفاتيح تشغيل الخوارزميات ---
+                action = None                
                 if event.key == pygame.K_b:
                     print("Running BFS Solver : ")                                        
                     solver = BFSSolver()
-                    results = solver.solve(self.current_state) #  استقبال القاموس
-                    self.process_solver_results(results) #  معالجة وطباعة النتائج
+                    results = solver.solve(self.current_state)
+                    self.process_solver_results(results)
 
                 elif event.key == pygame.K_d:
                     print("Running DFS Solver : ")
                     solver = DFSSolver()
-                    results = solver.solve(self.current_state) #  استقبال القاموس
-                    self.process_solver_results(results) #  معالجة وطباعة النتائج
+                    results = solver.solve(self.current_state)
+                    self.process_solver_results(results)
 
-                # --- 2. مفاتيح الأدوات المساعدة ---
                 elif event.key == pygame.K_u: self.undo_move()
                 elif event.key == pygame.K_r: self.restart_game()
                 elif event.key == pygame.K_q: self.running = False
-                
-                # --- 3. مفاتيح الحركة (الأسهم) ---
+                                
                 elif self.solver_path is None:
                     if event.key == pygame.K_UP: action = 'w' 
                     elif event.key == pygame.K_DOWN: action = 's'
@@ -117,9 +109,7 @@ class PygameApp:
         self.game_over = False
 
     def process_solver_results(self, results):
-        # لمعالجة وطباعة نتائج الخوارزميات المُعادة كقاموس
-        
-        # تحديث المتغيرات بناءً على القاموس
+
         self.solver_path = results.get("path")
         self.solver_index = 0
         
@@ -131,24 +121,20 @@ class PygameApp:
         print("\n" + "="*70)
         print(f"Performance analysis results for{solver_name} ")
         print("="*70)
-        
-        # 1. طباعة المقاييس المطلوبة
+               
         print(f"Implementation period : {results.get('execution_time', 0.0):.4f} seconds")
         print(f"Number of births : {results.get('generated_states_count', 0)}")
         print(f"Number of cases detected (Processed) : {results.get('discovered_states_count', 0)}")
         
-        # 2. المسار وطوله
         if self.solver_path is not None:
             path_length = results.get('path_length', 0)
             print(f"Length of the detected path : {path_length} steps")
-            # 3. المسار بشكل خطوات
             print(f"path : {'-'.join(self.solver_path)}")
             
-            # تحديث المسار المزار للرسم
             self.calculate_path_coordinates() 
         else:
             print("No solution has been found at this stage.")
-            self.path_coords.clear() # مسح الرسم إذا لم يكن هناك مسار
+            self.path_coords.clear()
         
         print("="*70 + "\n")
         
@@ -176,10 +162,10 @@ class PygameApp:
                             if game_logic.is_terminal(self.current_state):
                                 self.game_over = True
                     
-                        self.solver_index += 1 # الانتقال للحركة التالية
-                        self.last_move_time = current_time # تحديث مؤقت الحركة
+                        self.solver_index += 1
+                        self.last_move_time = current_time
                     else:
-                        self.solver_path = None # المسار انتهى، إيقاف الحركة الآلية
+                        self.solver_path = None
 
             available_moves = game_logic.get_available_transitions(self.current_state)
 
@@ -196,5 +182,5 @@ class PygameApp:
         sys.exit()
  
 if __name__ == "__main__":
-    app = PygameApp('level7.txt')
+    app = PygameApp('level10.txt')
     app.run()

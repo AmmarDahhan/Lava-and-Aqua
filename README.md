@@ -28,3 +28,5 @@
     game_app.py:
          التطبيق الرئيسي. يدير حلقة اللعبة، يأخذ مدخلات من المستخدم (WASD)، ويستخدم دوال game_logic و pygame_renderer لتشغيل اللعبة.
 
+     game_solver.py:
+          يوجد خوارزمية DFS , BFS
