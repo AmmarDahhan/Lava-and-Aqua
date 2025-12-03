@@ -36,7 +36,7 @@ def _first_non_ice_destination(board, start_r, start_c, dr, dc):
         if not (0 <= nr < rows and 0 <= nc < cols):
             return (r, c)
         if board[nr][nc] != ICE:
-            return (nr, nc) if board[nr][nc] == ICE else (nr, nc)
+            return (nr, nc) 
         r, c = nr, nc
 
 
@@ -46,26 +46,28 @@ def would_cause_immediate_death(state: 'GameState', action: str) -> bool:
     if action not in dirs:
         return True
     dr, dc = dirs[action]
+
     nr, nc = r + dr, c + dc
     if not _in_bounds(state.board, nr, nc):
         return True 
 
     target = state.board[nr][nc]
     
-    if target == LAVA:
-        return True
+    if target == LAVA: return True
+    if target in (WALL, BLOCK) or target.isdigit(): return False
 
     final_r, final_c = nr, nc
     if target == ICE:
         final_r, final_c = _first_non_ice_destination(state.board, nr, nc, dr, dc)
 
-    rows, cols = len(state.board), len(state.board[0])
-    if not _in_bounds(state.board, final_r, final_c):
-        return True
+    # if not _in_bounds(state.board, final_r, final_c):
+    #     return True
 
-    dest_cell = state.board[final_r][final_c]
-    if dest_cell not in (EMPTY, COIN, WATER, ICE):
-        return False
+    # dest_cell = state.board[final_r][final_c]
+    # if dest_cell == LAVA:
+    #     return True
+    # if dest_cell not in (EMPTY, COIN, WATER, ICE):
+    #     return False
 
     for dr_spread, dc_spread in [(0,1),(0,-1),(1,0),(-1,0)]:
         ar, ac = final_r + dr_spread, final_c + dc_spread
@@ -74,6 +76,14 @@ def would_cause_immediate_death(state: 'GameState', action: str) -> bool:
 
     return False
 
+
+
+def count_lava(state: GameState) -> int:
+    
+    count = 0
+    for row in state.board:
+        count += row.count(LAVA)      
+    return count
 
 def pretty_print_board(board):
     for row in board:

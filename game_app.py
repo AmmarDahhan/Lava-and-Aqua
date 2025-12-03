@@ -3,7 +3,7 @@ import sys
 import game_logic
 from game_state import GameState
 from game_renderer import gameRenderer
-from game_solver import BFSSolver, DFSSolver
+from game_solver import BFSSolver, DFSSolver, UCSSolver, AStarSolver
 
 class PygameApp:
     def __init__(self, level_file, tile_size=40):
@@ -49,7 +49,6 @@ class PygameApp:
                 self.path_coords.add(simulated_state.player_pos)
 
     def handle_events(self):
-        #Processes user input events
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
@@ -73,8 +72,20 @@ class PygameApp:
                     solver = DFSSolver()
                     results = solver.solve(self.current_state)
                     self.process_solver_results(results)
+                        
+                elif event.key == pygame.K_u:
+                    print("Running UCS Solver : ")
+                    solver = UCSSolver()
+                    results = solver.solve(self.current_state)
+                    self.process_solver_results(results)
 
-                elif event.key == pygame.K_u: self.undo_move()
+                elif event.key == pygame.K_a:
+                    print("Running A* Solver : ")
+                    solver = AStarSolver()
+                    results = solver.solve(self.current_state)
+                    self.process_solver_results(results)
+
+                elif event.key == pygame.K_m: self.undo_move()
                 elif event.key == pygame.K_r: self.restart_game()
                 elif event.key == pygame.K_q: self.running = False
                                 
@@ -182,5 +193,5 @@ class PygameApp:
         sys.exit()
  
 if __name__ == "__main__":
-    app = PygameApp('level10.txt')
+    app = PygameApp('level6.txt')
     app.run()
