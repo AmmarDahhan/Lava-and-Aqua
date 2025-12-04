@@ -222,17 +222,13 @@ class AStarSolver:
     def solve(self, initial_state):
         start_time = time.time()
         
-        # Priority Queue: (Priority, Count, Node)
-        # Count is used as a tie-breaker so Python doesn't try to compare Node objects directly
         queue = []
         count = 0 
         
         start_node = Node(initial_state)
         
-        # التكلفة الأولية g=0
         g_score = {state_id(initial_state): 0}
         
-        # التكلفة الكلية f = g + h
         f_score = calculate_heuristic(initial_state)
         
         heapq.heappush(queue, (f_score, count, start_node))
@@ -242,7 +238,6 @@ class AStarSolver:
         discovered_states_count = 0
 
         while queue:
-            # نسحب العنصر صاحب أقل تكلفة f
             current_f, _, current_node = heapq.heappop(queue)
             discovered_states_count += 1
             
@@ -260,30 +255,24 @@ class AStarSolver:
 
             current_sid = state_id(current_node.state)
             
-            # إذا كنا قد وصلنا لهذه الحالة سابقاً بتكلفة أقل، نتجاهلها
             if current_sid in visited and g_score.get(current_sid, float('inf')) < (current_f - calculate_heuristic(current_node.state)):
                 continue
             
             visited.add(current_sid)
-            
-            # تكلفة الخطوات الحالية (g) هي طول المسار حتى الآن
             current_g = g_score[current_sid]
 
             for action in get_available_transitions(current_node.state):
-                # نستخدم الدالة المعدلة (الآمنة) التي اتفقنا عليها سابقاً
                 if would_cause_immediate_death(current_node.state, action):
                     continue
 
                 new_state = apply_transition(current_node.state, action)
-                
-                # فحص الموت بعد الحركة (كما ناقشنا سابقاً)
+                                
                 r, c = new_state.player_pos
                 if new_state.board[r][c] == 'L': continue
 
                 new_sid = state_id(new_state)
-                new_g = current_g + 1 # تكلفة الحركة دائماً 1
-                
-                # إذا وجدنا مساراً أفضل لهذه الحالة أو أنها حالة جديدة
+                new_g = current_g + 1
+
                 if new_g < g_score.get(new_sid, float('inf')):
                     g_score[new_sid] = new_g
                     f_new = new_g + calculate_heuristic(new_state)
@@ -302,8 +291,7 @@ class GreedySolver:
         queue = []
         count = 0
         
-        start_node = Node(initial_state)
-        # الأولوية هنا هي فقط المسافة المتبقية للهدف
+        start_node = Node(initial_state)        
         priority = calculate_heuristic(initial_state)
         
         heapq.heappush(queue, (priority, count, start_node))
@@ -344,7 +332,6 @@ class GreedySolver:
                     visited.add(sid)
                     new_node = Node(new_state, current_node, action)
                     
-                    # الأولوية هي الـ Heuristic فقط
                     h_score = calculate_heuristic(new_state)
                     
                     count += 1

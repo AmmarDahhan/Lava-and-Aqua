@@ -193,5 +193,5 @@ class PygameApp:
         sys.exit()
  
 if __name__ == "__main__":
-    app = PygameApp('level6.txt')
+    app = PygameApp('level12.txt')
     app.run()

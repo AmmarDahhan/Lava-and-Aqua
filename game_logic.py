@@ -39,7 +39,6 @@ def _first_non_ice_destination(board, start_r, start_c, dr, dc):
             return (nr, nc) 
         r, c = nr, nc
 
-
 def would_cause_immediate_death(state: 'GameState', action: str) -> bool:
     r, c = state.player_pos
     dirs = {'w':(-1,0), 's':(1,0), 'a':(0,-1), 'd':(0,1)}
@@ -49,33 +48,36 @@ def would_cause_immediate_death(state: 'GameState', action: str) -> bool:
 
     nr, nc = r + dr, c + dc
     if not _in_bounds(state.board, nr, nc):
-        return True 
+        return True
 
     target = state.board[nr][nc]
-    
-    if target == LAVA: return True
-    if target in (WALL, BLOCK) or target.isdigit(): return False
 
-    final_r, final_c = nr, nc
+    # الوقوع مباشرة على لافا = موت فوري
+    if target == LAVA:
+        return True
+
+    # حواجز ثابتة أو مربعات معدودة ليست موت
+    if target in (WALL, BLOCK) or (isinstance(target, str) and target.isdigit()):
+        return False
+
+    # إذا الخانة أمامها حجر (ICE) -> نتحقق من إمكانية الدفع
     if target == ICE:
-        final_r, final_c = _first_non_ice_destination(state.board, nr, nc, dr, dc)
-
-    # if not _in_bounds(state.board, final_r, final_c):
-    #     return True
-
-    # dest_cell = state.board[final_r][final_c]
-    # if dest_cell == LAVA:
-    #     return True
-    # if dest_cell not in (EMPTY, COIN, WATER, ICE):
-    #     return False
-
-    for dr_spread, dc_spread in [(0,1),(0,-1),(1,0),(-1,0)]:
-        ar, ac = final_r + dr_spread, final_c + dc_spread
-        if _in_bounds(state.board, ar, ac) and state.board[ar][ac] == LAVA:
+        ice_r, ice_c = nr + dr, nc + dc
+        # لو ما في مكان لدفع الحجر -> لا تسمح بالحركة (ستكون عالقة أو خارج اللوح)
+        if not _in_bounds(state.board, ice_r, ice_c):
             return True
 
-    return False
+        dest = state.board[ice_r][ice_c]
+        # نسمح بالدفع إلى الخانات المسموح بها (EMPTY, WATER, LAVA, COIN)
+        # (بناءً على وصفك: الحجر يغطي الماء/اللافا لذلك الدفع على لافا مسموح)
+        if dest not in ICE_PUSH_ALLOWED:
+            return True
 
+        # الدفع مسموح -> لا يسبب موت فوري
+        return False
+
+    # الحالة الافتراضية: الحركة ليست مميتة فورياً
+    return False
 
 
 def count_lava(state: GameState) -> int:
