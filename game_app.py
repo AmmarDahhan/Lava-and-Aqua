@@ -3,7 +3,7 @@ import sys
 import game_logic
 from game_state import GameState
 from game_renderer import gameRenderer
-from game_solver import BFSSolver, DFSSolver, UCSSolver, AStarSolver
+from game_solver import BFSSolver, DFSSolver, UCSSolver, AStarSolver, Hill_Climbing
 
 class PygameApp:
     def __init__(self, level_file, tile_size=40):
@@ -82,6 +82,12 @@ class PygameApp:
                 elif event.key == pygame.K_a:
                     print("Running A* Solver : ")
                     solver = AStarSolver()
+                    results = solver.solve(self.current_state)
+                    self.process_solver_results(results)
+                
+                elif event.key == pygame.K_h:
+                    print("Running Hill_Climbing Solver : ")
+                    solver = Hill_Climbing()
                     results = solver.solve(self.current_state)
                     self.process_solver_results(results)
 
@@ -193,5 +199,5 @@ class PygameApp:
         sys.exit()
  
 if __name__ == "__main__":
-    app = PygameApp('level12.txt')
+    app = PygameApp('level6.txt')
     app.run()

@@ -23,16 +23,6 @@ def calculate_heuristic(state):
     
     return dist + (coins_count * 10)
 
-class Node:
-    def __init__(self, state, parent=None, action=None, cost=0):
-        self.state = state
-        self.parent = parent
-        self.action = action
-        self.cost = cost
-
-    def __lt__(self, other):
-            return self.cost < other.cost
-
 def reconstruct_path(goal_node):
     path = []
     current_node = goal_node
@@ -43,6 +33,16 @@ def reconstruct_path(goal_node):
         
     path.reverse()
     return path
+
+class Node:
+    def __init__(self, state, parent=None, action=None, cost=0):
+        self.state = state
+        self.parent = parent
+        self.action = action
+        self.cost = cost
+
+    def __lt__(self, other):
+            return self.cost < other.cost
 
 class UCSSolver:
     def solve(self, initial_state):
@@ -215,9 +215,82 @@ class DFSSolver:
             "path_length": 0,
             "solver_name": "DFS"
         }
-    
 
-        
+class Hill_Climbing:
+    def solve(self, initial_state):
+        start_time = time.time()
+
+        current_node = Node(
+            initial_state,
+            parent=None,
+            action=None,
+            cost=calculate_heuristic(initial_state)
+        )
+
+        visited = set()
+        visited.add(state_id(initial_state))
+
+        generated_states_count = 1
+        discovered_states_count = 0
+
+        while True:
+            discovered_states_count += 1
+
+            if is_goal(current_node.state):
+                path = reconstruct_path(current_node)
+                end_time = time.time()
+                return {
+                    "path": path,
+                    "execution_time": end_time - start_time,
+                    "generated_states_count": generated_states_count,
+                    "discovered_states_count": discovered_states_count,
+                    "path_length": len(path),
+                    "solver_name": "Hill_Climbing"
+                }
+
+            neighbors = []
+
+            for action in get_available_transitions(current_node.state):
+                if would_cause_immediate_death(current_node.state, action):
+                    continue
+
+                new_state = apply_transition(current_node.state, action)
+
+                if is_terminal(new_state) and not is_goal(new_state):
+                    continue
+
+                sid = state_id(new_state)
+                if sid in visited:
+                    continue
+
+                h = calculate_heuristic(new_state)
+                neighbors.append(
+                    Node(new_state, current_node, action, h)
+                )
+
+                generated_states_count += 1
+                            
+            if not neighbors:
+                break
+
+            next_node = min(neighbors, key=lambda n: n.cost)
+
+            if next_node.cost >= current_node.cost:
+                break
+
+            current_node = next_node
+            visited.add(state_id(current_node.state))
+
+        end_time = time.time()
+        return {
+            "path": None,
+            "execution_time": end_time - start_time,
+            "generated_states_count": generated_states_count,
+            "discovered_states_count": discovered_states_count,
+            "path_length": 0,
+            "solver_name": "Hill_Climbing"
+        }
+            
 class AStarSolver:
     def solve(self, initial_state):
         start_time = time.time()
@@ -339,3 +412,4 @@ class GreedySolver:
                     generated_states_count += 1
 
         return { "path": None, "solver_name": "Greedy", "execution_time": time.time() - start_time }
+    

@@ -51,32 +51,24 @@ def would_cause_immediate_death(state: 'GameState', action: str) -> bool:
         return True
 
     target = state.board[nr][nc]
-
-    # الوقوع مباشرة على لافا = موت فوري
+    
     if target == LAVA:
         return True
 
-    # حواجز ثابتة أو مربعات معدودة ليست موت
     if target in (WALL, BLOCK) or (isinstance(target, str) and target.isdigit()):
         return False
 
-    # إذا الخانة أمامها حجر (ICE) -> نتحقق من إمكانية الدفع
     if target == ICE:
         ice_r, ice_c = nr + dr, nc + dc
-        # لو ما في مكان لدفع الحجر -> لا تسمح بالحركة (ستكون عالقة أو خارج اللوح)
         if not _in_bounds(state.board, ice_r, ice_c):
             return True
 
         dest = state.board[ice_r][ice_c]
-        # نسمح بالدفع إلى الخانات المسموح بها (EMPTY, WATER, LAVA, COIN)
-        # (بناءً على وصفك: الحجر يغطي الماء/اللافا لذلك الدفع على لافا مسموح)
         if dest not in ICE_PUSH_ALLOWED:
             return True
-
-        # الدفع مسموح -> لا يسبب موت فوري
+        
         return False
 
-    # الحالة الافتراضية: الحركة ليست مميتة فورياً
     return False
 
 
